@@ -14,6 +14,6 @@ thiserror = "1.0.63"
 default = ["rand", "serde", "cuid2"]
 rand = ["dep:rand"]
 serde = ["dep:serde"]
-cuid2 = ["radix_fmt", "num"]
+cuid2 = ["radix_fmt", "num", "rand"]
 radix_fmt = ["dep:radix_fmt"]
 num = ["dep:num"]

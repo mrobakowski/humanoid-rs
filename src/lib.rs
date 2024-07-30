@@ -6,6 +6,10 @@ use std::{
 
 use thiserror::Error;
 
+#[cfg(all(feature = "cuid2", feature = "rand"))]
+mod cuid2;
+
+
 pub trait Prefix {
     const VALUE: &str;
 }
@@ -43,8 +47,8 @@ pub const fn encode_bytes(s: &str) -> u128 {
 }
 
 const fn decode_bytes(bytes: &u128) -> &str {
-    // SAFETY: u128 has 16 bytes, and a reference to it it probably very aligned
-    //  all byte patterns are also valid for u128, so this transmute is legit
+    // SAFETY: u128 has 16 bytes, and a reference to it is probably very aligned
+    //  all bit patterns are also valid for u128, so this transmute is legit
     let bytes: &[u8; 16] = unsafe { std::mem::transmute(bytes) };
     let len = bytes[0] as usize;
     assert!(len <= 15);
@@ -61,6 +65,12 @@ const fn decode_bytes(bytes: &u128) -> &str {
 impl<const B: u128> Debug for ShortPrefix<B> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ShortPrefix<{:?}>", decode_bytes(&B))
+    }
+}
+
+impl <const B: u128> Display for ShortPrefix<B> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", decode_bytes(&B))
     }
 }
 
@@ -96,6 +106,7 @@ impl<P: Prefix, T> PrefixedId<P, T> {
 
         Ok(PrefixedId(t, Default::default()))
     }
+
     pub fn from_str_optional_prefix(s: &str) -> Result<PrefixedId<P, T>, T::Err>
     where
         T: FromStr,
@@ -204,39 +215,52 @@ mod serde_impls {
         }
     }
 }
-
-#[cfg(all(feature = "cuid2", feature = "rand"))]
-mod cuid2;
-
 #[cfg(test)]
 mod test {
     use super::*;
 
+    type CustomerId = PrefixedId!("cus", String);
+
     #[test]
     fn display() {
-        type CustomerId = PrefixedId!("cus", String);
         let cid = CustomerId::from_id("1234".into());
         assert_eq!(cid.to_string(), "cus_1234")
     }
 
     #[test]
     fn parse_required() {
-        type CustomerId = PrefixedId!("cus", String);
         let cid = CustomerId::from_str("cus_1234");
         assert_eq!(cid, Ok(CustomerId::from_id("1234".into())))
     }
 
     #[test]
     fn parse_optional_some() {
-        type CustomerId = PrefixedId!("cus", String);
         let cid = CustomerId::from_str_optional_prefix("cus_1234");
         assert_eq!(cid, Ok(CustomerId::from_id("1234".into())))
     }
 
     #[test]
     fn parse_optional_none() {
-        type CustomerId = PrefixedId!("cus", String);
         let cid = CustomerId::from_str_optional_prefix("1234");
         assert_eq!(cid, Ok(CustomerId::from_id("1234".into())))
+    }
+
+    #[cfg(feature = "cuid2")]
+    #[test]
+    fn parse_prefixed_cuid() {
+        type CustomerId = PrefixedId!("cus", cuid2::Cuid2);
+        let cid = CustomerId::from_str_required_prefix("cus_123456789012345678901234");
+        assert_eq!(cid, Ok(CustomerId::from_id("123456789012345678901234".parse().unwrap())))
+    }
+    
+    #[cfg(feature = "cuid2")]
+    #[test]
+    fn generate_prefixed_cuid() {
+        use rand::random;
+        type CustomerId = PrefixedId!("cus", cuid2::Cuid2);
+        let cid: CustomerId = random();
+        assert!(cid.to_string().starts_with("cus_"));
+        println!("Debug: {:?}", cid);
+        println!("Display: {}", cid);
     }
 }
