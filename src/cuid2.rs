@@ -1,8 +1,9 @@
 use std::{
-    fmt::{Debug, Display, Write}, hash::{DefaultHasher, Hash, Hasher}, ops::Deref, str::FromStr
+    fmt::{Debug, Display, Write},
+    hash::{DefaultHasher, Hash, Hasher},
+    str::FromStr,
 };
 
-use num::Num;
 use radix_fmt::radix_36;
 use rand::{random, seq::SliceRandom, thread_rng, Rng};
 use thiserror::Error;

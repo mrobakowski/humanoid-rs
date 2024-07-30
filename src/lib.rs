@@ -7,7 +7,7 @@ use std::{
 use thiserror::Error;
 
 #[cfg(all(feature = "cuid2", feature = "rand"))]
-mod cuid2;
+pub mod cuid2;
 
 
 pub trait Prefix {
