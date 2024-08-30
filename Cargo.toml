@@ -7,7 +7,7 @@ edition = "2021"
 radix_fmt = { version = "1.0.0", optional = true }
 rand = { version = "0.8.5", optional = true }
 serde = { version = "1.0.204", optional = true }
-thiserror = "1.0.63"
+thiserror = "1.0"
 
 [features]
 default = ["rand", "serde", "cuid2"]
