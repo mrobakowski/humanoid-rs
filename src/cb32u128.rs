@@ -3,8 +3,8 @@ use std::{
     str::FromStr,
 };
 
-/// u128 that is represented ([std::fmt::Display] and [std::str::FromStr] impls) with Crockford's
-/// Base32 without check digit
+/// u128 that is represented ([std::fmt::Display] and [std::str::FromStr] impls) with [Crockford's
+/// Base32](https://www.crockford.com/base32.html) without check digit
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Cb32u128(u128);
 
