@@ -118,11 +118,9 @@ const CROCKFORD_REVERSE_MAPPING: [CrmEntry; 256] = const {
     let mut entries = [Invalid; 256];
 
     macro_rules! set {
-        ($($l:literal),+ => $e:expr) => {
-            $(
-                entries[$l as usize] = $e;
-            )+
-        };
+        ($($l:literal),+ => $e:expr) => {$(
+            entries[$l as usize] = $e;
+        )+};
     }
 
     set!('0', 'O', 'o' => Valid(0));
