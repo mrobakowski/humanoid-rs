@@ -1,14 +1,17 @@
 use std::{
     fmt::{Debug, Display},
+    hash::Hash,
     marker::PhantomData,
     str::{self, FromStr},
 };
 
 use thiserror::Error;
 
-#[cfg(all(feature = "cuid2", feature = "rand"))]
+#[cfg(feature = "cuid2")]
 pub mod cuid2;
 
+#[cfg(feature = "cb32u128")]
+pub mod cb32u128;
 
 pub trait Prefix {
     const VALUE: &str;
@@ -68,9 +71,15 @@ impl<const B: u128> Debug for ShortPrefix<B> {
     }
 }
 
-impl <const B: u128> Display for ShortPrefix<B> {
+impl<const B: u128> Display for ShortPrefix<B> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", decode_bytes(&B))
+    }
+}
+
+impl<const B: u128> Hash for ShortPrefix<B> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        Self::VALUE.hash(state)
     }
 }
 
@@ -140,6 +149,17 @@ impl<P: Prefix, T: Display> Display for PrefixedId<P, T> {
 impl<P: Prefix, T: Display> Debug for PrefixedId<P, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "PrefixedId(\"{}_{}\")", P::VALUE, self.0)
+    }
+}
+
+impl<P, T> Hash for PrefixedId<P, T>
+where
+    P: Prefix + Hash,
+    T: Hash,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        P::VALUE.hash(state);
+        self.0.hash(state);
     }
 }
 
@@ -215,6 +235,7 @@ mod serde_impls {
         }
     }
 }
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -250,14 +271,38 @@ mod test {
     fn parse_prefixed_cuid() {
         type CustomerId = PrefixedId!("cus", cuid2::Cuid2);
         let cid = CustomerId::from_str_required_prefix("cus_123456789012345678901234");
-        assert_eq!(cid, Ok(CustomerId::from_id("123456789012345678901234".parse().unwrap())))
+        assert_eq!(
+            cid,
+            Ok(CustomerId::from_id(
+                "123456789012345678901234".parse().unwrap()
+            ))
+        )
     }
-    
+
     #[cfg(feature = "cuid2")]
     #[test]
     fn generate_prefixed_cuid() {
         use rand::random;
         type CustomerId = PrefixedId!("cus", cuid2::Cuid2);
+        let cid: CustomerId = random();
+        assert!(cid.to_string().starts_with("cus_"));
+        println!("Debug: {:?}", cid);
+        println!("Display: {}", cid);
+    }
+
+    #[cfg(feature = "cb32u128")]
+    #[test]
+    fn parse_prefixed_cb32u128() {
+        type CustomerId = PrefixedId!("cus", cb32u128::Cb32u128);
+        let cid = CustomerId::from_str_required_prefix("cus_2137PAPA");
+        assert_eq!(cid, Ok(CustomerId::from_id("2137PAPA".parse().unwrap())))
+    }
+
+    #[cfg(all(feature = "cb32u128", feature = "rand"))]
+    #[test]
+    fn generate_prefixed_cb32u128() {
+        use rand::random;
+        type CustomerId = PrefixedId!("cus", cb32u128::Cb32u128);
         let cid: CustomerId = random();
         assert!(cid.to_string().starts_with("cus_"));
         println!("Debug: {:?}", cid);
